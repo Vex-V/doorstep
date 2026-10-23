@@ -1,0 +1,98 @@
+{
+  "title": "A day at Mum's",
+  "start": "2026-10-20T06:00:00",
+  "tz": "Europe/London",
+  "cameras": [
+    {
+      "id": "front",
+      "name": "Front door",
+      "kind": "doorbell"
+    },
+    {
+      "id": "kitchen",
+      "name": "Kitchen",
+      "kind": "camera"
+    },
+    {
+      "id": "living-room",
+      "name": "Living room",
+      "kind": "camera"
+    },
+    {
+      "id": "chime",
+      "name": "Hallway Chime",
+      "kind": "chime"
+    }
+  ],
+  "events": [
+    {
+      "at": "07:05:00",
+      "camera": "front",
+      "type": "motion_detected",
+      "sub_type": "other_motion",
+      "clip": "clips/0705-parcels-left.mp4",
+      "note": "a delivery left on the doormat"
+    },
+    {
+      "at": "10:05:00",
+      "camera": "kitchen",
+      "type": "motion_detected",
+      "sub_type": "human",
+      "clip": "clips/1005-kitchen.mp4",
+      "note": "up at last: someone at the kitchen counter"
+    },
+    {
+      "at": "10:20:00",
+      "camera": "front",
+      "type": "motion_detected",
+      "sub_type": "human",
+      "clip": "clips/1020-parcels-taken-in.mp4",
+      "note": "the delivery taken in, late"
+    },
+    {
+      "at": "11:12:00",
+      "camera": "front",
+      "type": "button_press",
+      "clip": "clips/1112-carer-at-the-door.mp4",
+      "note": "the carer rings; the door opens"
+    },
+    {
+      "at": "11:31:00",
+      "camera": "front",
+      "type": "motion_detected",
+      "sub_type": "human",
+      "clip": "clips/1131-carer-leaving.mp4",
+      "note": "the carer at the door, leaving"
+    },
+    {
+      "at": "14:02:00",
+      "camera": "front",
+      "type": "button_press",
+      "clip": "clips/1402-courier.mp4",
+      "note": "a courier with a parcel"
+    },
+    {
+      "at": "15:10:00",
+      "camera": "living-room",
+      "type": "motion_detected",
+      "sub_type": "human",
+      "clip": "clips/1510-on-the-floor.mp4",
+      "note": "a fall: off the sofa, onto the floor"
+    },
+    {
+      "at": "16:40:00",
+      "camera": "front",
+      "type": "button_press",
+      "clip": "clips/1640-unexpected-caller.mp4",
+      "note": "a man in a hooded jacket nobody expected knocks, then leaves"
+    },
+    {
+      "at": "23:50:00",
+      "camera": "front",
+      "type": "motion_detected",
+      "sub_type": "human",
+      "clip": "clips/2350-going-out.mp4",
+      "note": "going out at night, locking the door"
+    }
+  ]
+}

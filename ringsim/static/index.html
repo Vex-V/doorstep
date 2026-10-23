@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ring simulator</title>
+<style>
+  /* Black on white like Doorstep's pages; dark only when chosen. */
+  :root {
+    --bg: #fff; --panel: #fff; --ink: #0a0a0a; --muted: #6b6b6b; --line: #e2e2e2;
+    --accent: #0a0a0a; --accent-ink: #fff; --ok: #0a0a0a; --warn: #0a0a0a; --chip: #f3f3f3;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #000; --panel: #0e0e0e; --ink: #f2f2f2; --muted: #9a9a9a; --line: #2a2a2a;
+    --accent: #f2f2f2; --accent-ink: #000; --ok: #f2f2f2; --warn: #f2f2f2; --chip: #1a1a1a;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px;
+           padding: 16px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  h1 { font-size: 17px; margin: 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  #time { font: 600 34px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-left: auto; }
+  button, select, input { font: inherit; color: inherit; background: var(--chip);
+                          border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .warn { font-weight: 600; }
+  main { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px;
+         padding: 16px 20px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+            padding: 12px 14px; min-width: 0; }
+  h2 { font-size: 14px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .04em;
+       color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 6px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  tr.future td { color: var(--muted); }
+  .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; }
+  .tag { display: inline-block; padding: 0 6px; border-radius: 4px; background: var(--chip);
+         font-size: 12px; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); }
+  .log { max-height: 260px; overflow: auto; overflow-wrap: anywhere; }
+  #chime { font-size: 20px; padding: 8px 0; }
+  .feed { position: relative; background: #000; border-radius: 6px; aspect-ratio: 16 / 9;
+          overflow: hidden; }
+  .feed video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .feed-label { position: absolute; left: 8px; top: 8px; background: rgba(0, 0, 0, .6);
+                color: #fff; font-size: 12px; padding: 2px 7px; border-radius: 4px; }
+  .feed-label .rec { font-weight: 700; }
+  .left { display: grid; gap: 16px; align-content: start; min-width: 0; }
+  .add { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 8px;
+         margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .add input[type=file] { grid-column: 1 / -1; }
+  .add .note { grid-column: span 2; }
+  td.act { white-space: nowrap; text-align: right; }
+  #chime.ringing { animation: ring 0.25s 6 alternate; }
+  @keyframes ring { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+</style>
+<script>
+  // Light unless this browser chose dark (the button in the header).
+  (() => {
+    const root = document.documentElement, KEY = "ringsim-theme";
+    try { if (localStorage.getItem(KEY) === "dark") root.dataset.theme = "dark"; } catch (e) {}
+    addEventListener("DOMContentLoaded", () => {
+      const b = document.getElementById("theme");
+      const label = () => { b.textContent = root.dataset.theme === "dark" ? "Light mode" : "Dark mode"; };
+      label();
+      b.addEventListener("click", () => {
+        if (root.dataset.theme === "dark") delete root.dataset.theme; else root.dataset.theme = "dark";
+        try { localStorage.setItem(KEY, root.dataset.theme || "light"); } catch (e) {}
+        label();
+      });
+    });
+  })();
+</script>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Ring Partner API simulator</h1>
+    <div class="muted small" id="title"></div>
+  </div>
+  <div id="time">--:--:--</div>
+  <div class="muted small" id="speed"></div>
+  <div class="controls">
+    <select id="mode" aria-label="How to play the day">
+      <option value="schedule">On schedule</option>
+      <option value="sequence">One after another</option>
+      <option value="manual">By hand</option>
+    </select>
+    <select id="speed-set" aria-label="Speed">
+      <option value="1">1×</option><option value="10">10×</option>
+      <option value="60" selected>60×</option><option value="120">120×</option>
+      <option value="300">300×</option>
+    </select>
+    <select id="gap-set" aria-label="Gap between videos" hidden>
+      <option value="10">10 s apart</option><option value="20" selected>20 s apart</option>
+      <option value="30">30 s apart</option><option value="60">60 s apart</option>
+    </select>
+    <button class="primary" id="start">Start the day</button>
+    <button id="pause">Pause</button>
+    <span class="warn small" id="err"></span>
+    <button id="theme">Dark mode</button>
+  </div>
+</header>
+<main>
+  <div class="left">
+    <section>
+      <h2>Camera view</h2>
+      <div class="feed">
+        <video id="feed" muted playsinline></video>
+        <div class="feed-label" id="feed-label">Waiting for the first event</div>
+      </div>
+    </section>
+    <section>
+      <h2>The day</h2>
+      <table><tbody id="events"></tbody></table>
+      <form class="add" id="add">
+        <input type="file" id="add-file" accept="video/*" required aria-label="Video">
+        <input type="time" id="add-at" step="1" required aria-label="Time of day">
+        <select id="add-camera" aria-label="Camera"></select>
+        <select id="add-type" aria-label="What happened">
+          <option value="button_press">Doorbell pressed</option>
+          <option value="motion_detected">Motion</option>
+        </select>
+        <input type="text" id="add-note" class="note" placeholder="What happens (optional)">
+        <button class="primary">Add video</button>
+      </form>
+      <form class="add" id="add-cam">
+        <input type="text" id="cam-name" class="note" placeholder="A camera: Kitchen, Back garden…" required aria-label="Camera name">
+        <select id="cam-kind" aria-label="Kind">
+          <option value="camera">Camera</option><option value="doorbell">Doorbell</option>
+        </select>
+        <button>Add camera</button>
+      </form>
+    </section>
+  </div>
+  <div style="display:grid; gap:16px; align-content:start; min-width:0">
+    <section>
+      <h2>Chime</h2>
+      <div id="chime" class="muted">Silent</div>
+    </section>
+    <section>
+      <h2>Webhooks sent</h2>
+      <div class="log mono" id="deliveries"></div>
+    </section>
+    <section>
+      <h2>API calls received</h2>
+      <div class="log mono" id="calls"></div>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let state = null, chimesHeard = 0, feedIndex = null, shownMode = null;
+
+// The camera view plays the latest event that has happened, then holds its
+// last frame: the step as the visitor left it.
+function renderFeed() {
+  const now = state.clock.now_ms;
+  const happened = state.events.filter((e) => e.start_ms <= now);
+  const e = happened.length ? happened.reduce((a, b) => (b.start_ms >= a.start_ms ? b : a)) : null;
+  if (!e) {
+    if (feedIndex !== null) { $("feed").removeAttribute("src"); $("feed").load(); feedIndex = null; }
+    $("feed-label").textContent = "Waiting for the first event";
+    return;
+  }
+  const kind = e.type === "button_press" ? "doorbell pressed" : "motion";
+  $("feed-label").innerHTML = `<span class="rec">●</span> ${esc(e.camera)} · ${esc(e.at.slice(0, 5))} · ${esc(kind)}`;
+  if (e.index === feedIndex) return;
+  feedIndex = e.index;
+  $("feed").src = `/sim/clip/${e.index}`;
+  $("feed").play().catch(() => {});
+}
+
+async function post(path, body) {
+  const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json"},
+                               body: JSON.stringify(body || {})});
+  $("err").textContent = r.ok ? "" : ((await r.json()).errors?.[0]?.title || r.statusText);
+  return refresh();
+}
+
+function dingDong() {
+  try {
+    const ctx = new AudioContext();
+    [[659, 0], [523, 0.45]].forEach(([f, t]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.25, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.9);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 1);
+    });
+  } catch (e) { /* no audio: the bell still shakes */ }
+}
+
+function render() {
+  const s = state, c = s.clock;
+  $("title").textContent = `${s.title} · ${s.tz} · webhooks to ${s.webhook_url || "(none)"}`;
+  $("time").textContent = c.time;
+  const playing = {schedule: c.running ? `${c.speed}× real time` : "paused",
+                   sequence: s.playing ? `one after another, ${s.gap_s} s apart` : "stopped",
+                   manual: "by hand: press Send"}[s.mode];
+  $("speed").textContent = playing;
+  if (s.mode !== shownMode) { $("mode").value = shownMode = s.mode; }   // a choice not yet started stays
+  showControls();
+  $("pause").textContent = s.mode === "schedule" ? (c.running ? "Pause" : "Resume") : "Stop";
+  $("pause").hidden = s.mode === "manual" || (s.mode === "sequence" && !s.playing);
+  if (document.activeElement !== $("speed-set") &&
+      [...$("speed-set").options].some((o) => Number(o.value) === c.speed))
+    $("speed-set").value = String(c.speed);
+  const cams = s.cameras.filter((x) => x.kind !== "chime");
+  if ($("add-camera").options.length !== cams.length)
+    $("add-camera").innerHTML = cams.map((x) => `<option value="${esc(x.id)}" data-kind="${esc(x.kind)}">${esc(x.name || x.id)}</option>`).join("");
+  doorbellOnly();
+  renderFeed();
+  $("events").innerHTML = s.events.map((e) => {
+    const past = e.start_ms <= c.now_ms;
+    const status = e.delivered ? '<span class="ok">webhook sent</span>'
+      : e.pending ? '<span class="warn">sending…</span>' : "";
+    const kind = e.type === "button_press" ? "doorbell press" : `motion${e.subtype ? " · " + e.subtype : ""}`;
+    const now = e.index >= 0 ? `<button data-send="${e.index}">Send</button> ` +
+      `<button data-remove="${e.index}" title="Take it out of the day">Remove</button>` : "";
+    return `<tr class="${past ? "" : "future"}">
+      <td class="mono">${esc(e.at)}</td>
+      <td>${esc(e.camera)}<br><span class="tag">${esc(kind)}</span></td>
+      <td>${esc(e.note)}<br><span class="muted small">${esc(e.clip)} · ${e.seconds} s</span></td>
+      <td class="small">${status}</td><td class="act">${now}</td></tr>`;
+  }).join("");
+  const last = s.chimes[s.chimes.length - 1];
+  $("chime").textContent = last ? `🔔 ${last.time} — played ${last.audio_ref}` : "Silent";
+  if (s.chimes.length > chimesHeard) {
+    chimesHeard = s.chimes.length;
+    $("chime").classList.remove("ringing"); void $("chime").offsetWidth;
+    $("chime").classList.add("ringing"); dingDong();
+  }
+  $("deliveries").innerHTML = s.deliveries.map((d) =>
+    `<div>${esc(d.time)} ${esc(d.type)} → <span class="${d.status >= 200 && d.status < 300 ? "ok" : "warn"}">${esc(d.status)}</span>${d.attempt > 1 ? ` (try ${d.attempt})` : ""}</div>`).join("") || '<span class="muted">none yet</span>';
+  $("calls").innerHTML = s.calls.map((x) =>
+    `<div>${esc(x.time)} ${esc(x.method)} ${esc(x.path)} <span class="${x.status < 400 ? "ok" : "warn"}">${x.status}</span></div>`).join("") || '<span class="muted">none yet</span>';
+}
+
+async function refresh() {
+  try { state = await (await fetch("/sim/state")).json(); render(); } catch (e) { /* retry next tick */ }
+}
+
+function showControls() {
+  $("speed-set").hidden = $("mode").value !== "schedule";
+  $("gap-set").hidden = $("mode").value !== "sequence";
+}
+$("mode").onchange = showControls;
+$("start").onclick = () => post("/sim/start", {mode: $("mode").value,
+  speed: Number($("speed-set").value), gap_s: Number($("gap-set").value)});
+$("pause").onclick = () => state.mode === "schedule"
+  ? post("/sim/clock", {running: !state.clock.running}) : post("/sim/stop");
+$("speed-set").onchange = () => post("/sim/clock", {speed: Number($("speed-set").value)});
+$("events").onclick = (ev) => {
+  const {send, remove} = ev.target.dataset;
+  if (send !== undefined) post(`/sim/events/${send}/send`);
+  if (remove !== undefined) fetch(`/sim/videos/${remove}`, {method: "DELETE"}).then(refresh);
+};
+// A doorbell press is only offered for a doorbell.
+function doorbellOnly() {
+  const opt = $("add-camera").selectedOptions[0];
+  const bell = !opt || opt.dataset.kind === "doorbell";
+  $("add-type").options[0].disabled = !bell;
+  if (!bell) $("add-type").value = "motion_detected";
+}
+$("add-camera").onchange = doorbellOnly;
+$("add-cam").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const r = await fetch("/sim/cameras", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({name: $("cam-name").value, kind: $("cam-kind").value})});
+  $("err").textContent = r.ok ? "" : ((await r.json()).errors?.[0]?.title || r.statusText);
+  if (r.ok) { $("add-cam").reset(); refresh(); }
+};
+$("add").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const file = $("add-file").files[0];
+  if (!file) return;
+  const q = new URLSearchParams({at: $("add-at").value, camera: $("add-camera").value,
+                                 type: $("add-type").value, note: $("add-note").value, name: file.name});
+  $("err").textContent = "Adding…";
+  const r = await fetch(`/sim/videos?${q}`, {method: "POST", body: file});
+  $("err").textContent = r.ok ? "" : ((await r.json()).errors?.[0]?.title || r.statusText);
+  if (r.ok) { $("add").reset(); refresh(); }
+};
+refresh();
+setInterval(refresh, 1000);
+</script>
+</body>
+</html>

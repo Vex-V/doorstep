@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doorstep"
+version = "0.1.0"
+description = "Ring cameras for an older relative living alone: alerts in plain English, carer visits, kitchen and fall checks, the day on one page"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "httpx>=0.27",
+    "tzdata",                  # time zones: Windows has no system database
+    "av>=15",
+    "opencv-python>=5",
+    "numpy>=2",
+    "python-dotenv",
+    "jsonschema",
+    "openai",
+    "supabase",
+    # vidra's local embedder, Doorstep's default (DOORSTEP_EMBEDDER=local)
+    "torch>=2.4",
+    "sentence-transformers",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+doorstep = "doorstep.__main__:main"
+ringsim = "ringsim.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["doorstep*", "ringsim*", "vidra*"]
+
+[tool.setuptools.package-data]
+doorstep = ["static/*"]
+ringsim = ["static/*"]
+"vidra" = ["py.typed"]
+"vidra.video_rag.core.describe" = ["prompts.json"]
+"vidra.aggregates.definitions" = ["definitions.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

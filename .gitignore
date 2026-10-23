@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+data/
+data-*/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+scenarios/*/clips/
+.ring_token
+# vidra's model weights cache (the local embedder), downloaded on first use
+weights/

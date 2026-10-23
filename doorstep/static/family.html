@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doorstep</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/theme.js"></script>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Doorstep</h1>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#setup" data-tab="setup">Set up</a>
+      <a href="#notifications" data-tab="notifications">Notifications <span class="count" id="note-count"></span></a>
+      <a href="#view" data-tab="view">View</a>
+    </nav>
+    <span class="spacer"></span>
+    <button id="theme" class="quiet">Dark mode</button>
+  </div>
+  <div class="bar sub">
+    <strong id="clock"></strong>
+    <span class="spacer"></span>
+    <div class="steps" id="steps" hidden>
+      <span class="muted small" id="step-status"></span>
+      <button id="step-restart" title="The simulator's day from the top, on a cleared timeline">Start over</button>
+      <select id="step-dwell" aria-label="Pause between steps">
+        <option value="3">3 s each</option><option value="6" selected>6 s each</option>
+        <option value="10">10 s each</option>
+      </select>
+      <button id="step-auto" aria-pressed="false">Auto-play</button>
+      <button class="primary" id="step-next" title="Straight to the next thing that happens">Next &#9656;</button>
+    </div>
+  </div>
+</header>
+
+<!-- Set up: what Doorstep should look out for -->
+<main class="tab" id="tab-setup" hidden>
+  <div class="columns">
+    <section>
+      <h2>Alerts</h2>
+      <p class="muted small">Say what you want to know, in your own words.</p>
+      <form id="rule-form" class="stack">
+        <textarea id="rule-text" rows="2" placeholder="Tell me if there's no movement in the kitchen by 9:30am"></textarea>
+        <div class="row"><button class="primary" id="rule-add">Add alert</button><span class="muted small" id="rule-status"></span></div>
+      </form>
+      <div id="rules" class="stack list"></div>
+    </section>
+    <section>
+      <h2>Expected visits</h2>
+      <p class="muted small">Who should come, what they look like, and when.</p>
+      <form id="visit-form" class="stack">
+        <div class="row">
+          <input type="text" id="visit-label" placeholder="Who: the carer" autocomplete="off" style="flex:1">
+          <select id="visit-camera" aria-label="Camera"></select>
+        </div>
+        <input type="text" id="visit-description" placeholder="What they look like: someone in a white VOLUNTEER T-shirt" autocomplete="off">
+        <div class="row">
+          <label class="small">Between <input type="time" id="visit-from" value="09:00"></label>
+          <label class="small">and <input type="time" id="visit-to" value="10:00"></label>
+          <button class="primary">Add visit</button>
+          <span class="muted small" id="visit-status"></span>
+        </div>
+      </form>
+      <div id="visits" class="stack list"></div>
+      <h2 class="later">Privacy</h2>
+      <p class="muted small">People are described by what they look like, never identified.
+        Footage is kept for a week, then deleted.</p>
+      <div class="row">
+        <button class="danger" id="delete-all" title="Every clip and notification, and these alerts and visits">Delete everything</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Notifications: everything the family was told, newest first -->
+<main class="tab narrow" id="tab-notifications" hidden>
+  <section class="digest" id="digest-card">
+    <div class="row"><h2>The last 24 hours</h2><span class="spacer"></span>
+      <button class="quiet small" id="digest-make">Write it now</button></div>
+    <div id="digest" class="stack"></div>
+  </section>
+  <div id="notes" class="stack"></div>
+</main>
+
+<!-- View: every clip received, one to watch, and questions about them -->
+<main class="tab" id="tab-view" hidden>
+  <section>
+    <div class="timeline" id="timeline"></div>
+    <div class="row"><p class="muted small" id="timeline-note"></p><span class="spacer"></span>
+      <button class="danger small" id="clear-timeline" title="Every clip and notification; your alerts and visits stay">Clear the timeline</button></div>
+  </section>
+  <div class="columns">
+    <section id="detail" class="detail stack">
+      <p class="muted">Pick a clip on the timeline, or a notification, to watch it.</p>
+    </section>
+    <section>
+      <h2>Ask about the footage</h2>
+      <form id="ask" class="row">
+        <input type="text" id="question" placeholder="Did the carer come? When was the parcel taken in?" autocomplete="off" style="flex:1">
+        <button class="primary">Ask</button>
+      </form>
+      <div id="answer" class="stack" style="margin-top:.75rem"></div>
+    </section>
+  </div>
+</main>
+
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+<script src="/static/family.js"></script>
+</body>
+</html>
